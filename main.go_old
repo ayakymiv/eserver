@@ -1,0 +1,116 @@
+package main
+
+import (
+	"encoding/json"
+	"github.com/gorilla/Sessions"
+	"io"
+	"log"
+	"net/http"
+)
+
+var (
+	key = []byte("super-secret-key")
+	store = sessions.NewCookieStore(key)
+)
+
+type events struct {
+	Events map[string]*event
+}
+
+func (e events) Add(et eJson) {
+	log.Println(e.Events)
+	if e.Events[et.Name] == nil {
+		pEvent := new(event)
+		e.Events[et.Name] = new(event)
+		pEvent.Name = et.Name
+		pEvent.Event = et.Event
+		pEvent.Handlers = []string{et.Handler}
+		e.Events[et.Name] = pEvent
+
+	} else {
+		e.Events[et.Name].Handlers = append(e.Events[et.Name].Handlers, et.Handler)
+	}
+}
+
+type event struct {
+	Name string
+	Event string
+	Handlers []string
+	data interface{}
+}
+
+type eJson struct {
+	Name 	string `json:"name"`
+	Event 	string `json:"event"`
+	Handler string `json:"address"`
+}
+
+func retrieveEventData(r io.Reader) (x *eJson, err error) {
+	x = new(eJson)
+	err = json.NewDecoder(r).Decode(&x)
+	return
+}
+
+func main() {
+
+	http.HandleFunc("/listener", func (w http.ResponseWriter, r *http.Request) {
+		session, err := store.Get(r, "cookie-name")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if r.Method == "POST" {
+
+			x, err := retrieveEventData(r.Body)
+			if err != nil {
+				log.Fatal("err:", err)
+			}
+			if session.Values["event"] == nil {
+				session.Values["event"] = new(events)
+				log.Println("Empty session")
+			}
+
+			var ev = session.Values["event"]
+			ev.Add(*x)
+			// handle POST requests
+			log.Println(ev)
+		} else {
+			http.Error(w, http.StatusText(http.StatusForbidden),
+				http.StatusForbidden)
+		}
+	})
+	http.HandleFunc("/listener/*", func (w http.ResponseWriter, r *http.Request) {
+		//session, _ := store.Get(r, "cookie-name")
+			if r.Method == "DELETE" {
+				// handle POST requests
+				var t interface{}
+				err := json.NewDecoder(r.Body).Decode(&t)
+				if err != nil {
+					log.Fatal("Error parse body: ", err)
+
+
+				}
+			} else {
+				http.Error(w, http.StatusText(http.StatusForbidden),
+					http.StatusForbidden)
+			}
+	})
+	http.HandleFunc("/publish/*", func (w http.ResponseWriter, r *http.Request) {
+		//session, _ := store.Get(r, "cookie-name")
+		if r.Method == "POST" {
+			// handle POST requests
+			var t interface{}
+			err := json.NewDecoder(r.Body).Decode(&t)
+			if err != nil {
+				log.Fatal("Error parse body: ", err)
+			}
+		} else {
+			http.Error(w, http.StatusText(http.StatusForbidden),
+				http.StatusForbidden)
+		}
+	})
+	err := http.ListenAndServeTLS(":10443", "server.crt", "server.key", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+}
