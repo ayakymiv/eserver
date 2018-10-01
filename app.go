@@ -26,6 +26,7 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/listener", a.addEvent).Methods("POST")
 	a.Router.HandleFunc("/listener/{event}", a.removeEvent).Methods("DELETE")
 	a.Router.HandleFunc("/publish/{event}", a.publishEvent).Methods("POST")
+	a.Router.PathPrefix("/").Handler(a.HandleAll)
 }
 
 func (a *App) addEvent(w http.ResponseWriter, r *http.Request) {
@@ -47,5 +48,9 @@ func (a *App) removeEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) publishEvent(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(w)
+}
+
+func (a *App) HandleAll(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(w)
 }
