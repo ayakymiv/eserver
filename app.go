@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 type App struct {
@@ -20,9 +21,10 @@ func (a *App) Initialize() {
 	ModelsInit()
 }
 
-func (a *App) Run(addr string) {
+func (a *App) Run() {
 	//log.Fatal(http.ListenAndServe(":8000", a.Router))
-	log.Fatal(http.ListenAndServeTLS(":8443", "server.crt", "server.key", a.Router))
+	var port = os.Getenv("PORT_NUMBER")
+	log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", port), "server.crt", "server.key", a.Router))
 }
 
 func (a *App) initializeRoutes() {

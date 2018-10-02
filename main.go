@@ -8,6 +8,6 @@ func main() {
 	a := App{}
 	a.Initialize()
 
-	a.Run(":8080")
+	a.Run()
 	defer db.Close()
 }
